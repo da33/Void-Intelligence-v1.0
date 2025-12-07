@@ -4,6 +4,7 @@ from services.gemini_processor import GeminiProcessor
 from services.notion_client import NotionClient
 from services.calendar_client import CalendarClient
 from services.drive_client import DriveClient
+from services.google_auth import GoogleAuthClient
 import shutil
 import base64
 import os
@@ -21,12 +22,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# transcriber = Transcriber()
-# intelligence = Intelligence()
+# Initialize Shared Auth
+google_auth = GoogleAuthClient()
+
+# Inject into clients
 gemini = GeminiProcessor()
 notion = NotionClient()
-calendar = CalendarClient()
-drive = DriveClient()
+calendar = CalendarClient(google_auth_client=google_auth)
+drive = DriveClient(google_auth_client=google_auth)
 
 @app.get("/")
 def read_root():  
@@ -88,6 +91,13 @@ async def process_audio(file: UploadFile = File(...), mode: str = Form("note")):
         print("Generating Calendar assets...")
         ics_content = calendar.create_ics(data)
         google_cal_link = calendar.create_google_link(data)
+
+        # [NEW] Auto-create Event in Google Calendar (Mac Sync)
+        # Attempt to create if date is present
+        auto_event_link = None
+        if data.get("date"):
+            print("Auto-syncing to Google Calendar...")
+            auto_event_link = calendar.create_event(data)
         
         # Cleanup
         os.remove(temp_filename)
@@ -98,6 +108,7 @@ async def process_audio(file: UploadFile = File(...), mode: str = Form("note")):
             "notion_url": notion_url,
             "google_calendar_link": google_cal_link,
             "google_doc_link": google_doc_link,
+            "auto_event_link": auto_event_link,
             "ics_content": ics_content # Frontend can download this as .ics
         }
         

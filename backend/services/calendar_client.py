@@ -2,6 +2,44 @@ from datetime import datetime, timedelta
 import urllib.parse
 
 class CalendarClient:
+    def __init__(self, google_auth_client=None):
+        self.service = None
+        if google_auth_client:
+             self.service = google_auth_client.get_service('calendar', 'v3')
+
+    def create_event(self, data: dict):
+        """Creates an event in Google Calendar."""
+        if not self.service:
+            print("Calendar service not initialized.")
+            return None
+
+        summary = data.get("summary", "Event")
+        start_time = data.get("date") # ISO format expected
+        
+        try:
+            dt_start = datetime.fromisoformat(start_time)
+            dt_end = dt_start + timedelta(hours=1)
+            
+            event = {
+                'summary': summary,
+                'start': {
+                    'dateTime': dt_start.isoformat(),
+                    'timeZone': 'Asia/Taipei', # Hardcoded for now
+                },
+                'end': {
+                    'dateTime': dt_end.isoformat(),
+                    'timeZone': 'Asia/Taipei',
+                },
+            }
+
+            event = self.service.events().insert(calendarId='primary', body=event).execute()
+            print(f"Event created: {event.get('htmlLink')}")
+            return event.get('htmlLink')
+            
+        except Exception as e:
+            print(f"Error creating calendar event: {e}")
+            return None
+
     def generate_google_link(self, summary: str, start_time: str, end_time: str = None):
         """Generates a Google Calendar event link."""
         # start_time format expected: YYYYMMDDTHHMMSS
