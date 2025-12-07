@@ -67,7 +67,9 @@ function App() {
       setResult(data);
     } catch (error) {
       console.error("Upload error:", error);
-      alert(`處理失敗: ${error.message || "請檢查網路連線"}`);
+      const url = error.config?.url || "Unknown URL";
+      const status = error.response?.status || "Unknown Status";
+      alert(`處理失敗 (Status: ${status})\n連線目標: ${url}\n\n錯誤訊息: ${error.message}`);
     } finally {
       setIsProcessing(false);
     }
