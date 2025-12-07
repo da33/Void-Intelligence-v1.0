@@ -131,7 +131,8 @@ async def process_audio(file: UploadFile = File(...), mode: str = Form("note")):
             "google_calendar_link": google_cal_link,
             "google_doc_link": google_doc_link,
             "auto_event_link": auto_event_link,
-            "ics_content": ics_content # Frontend can download this as .ics
+            "ics_content": ics_content, # Frontend can download this as .ics
+            "gemini_data": data # [DEBUG] Return full analysis for client-side inspection
         }
         
     except Exception as e:
