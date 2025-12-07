@@ -10,7 +10,8 @@ class GeminiProcessor:
         api_key = os.getenv("GOOGLE_API_KEY")
         if api_key:
             genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel('gemini-flash-latest')
+            # Switch to stable 1.5-flash for better free tier limits (2.5 is experimental/low quota)
+            self.model = genai.GenerativeModel('gemini-1.5-flash')
         else:
             self.model = None
 
