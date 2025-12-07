@@ -1,0 +1,10 @@
+services:
+  - name: backend
+    dir: backend
+    type: docker
+    
+  - name: frontend
+    dir: frontend
+    type: static
+    buildCommand: npm run build
+    outputDir: dist
