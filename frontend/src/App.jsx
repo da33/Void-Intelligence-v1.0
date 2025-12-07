@@ -66,7 +66,8 @@ function App() {
       const data = await uploadAudio(blob, filename, currentMode);
       setResult(data);
     } catch (error) {
-      alert("處理失敗，請稍後再試");
+      console.error("Upload error:", error);
+      alert(`處理失敗: ${error.message || "請檢查網路連線"}`);
     } finally {
       setIsProcessing(false);
     }
