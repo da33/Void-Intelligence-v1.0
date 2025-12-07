@@ -35,6 +35,28 @@ drive = DriveClient(google_auth_client=google_auth)
 def read_root():  
     return {"status": "ok"}
 
+@app.get("/api/health")
+def health_check():
+    """Checks the health of the system and auth status."""
+    auth_status = "Uninitialized"
+    scopes = []
+    
+    if google_auth.creds:
+        if google_auth.creds.valid:
+            auth_status = "Valid"
+            scopes = google_auth.creds.scopes if hasattr(google_auth.creds, 'scopes') else []
+        else:
+            auth_status = "Expired/Invalid"
+    else:
+        auth_status = "No Credentials Found (Check GOOGLE_TOKEN_BASE64)"
+        
+    return {
+        "status": "online",
+        "auth_status": auth_status,
+        "scopes": scopes,
+        "env_var_present": bool(os.getenv("GOOGLE_TOKEN_BASE64"))
+    }
+
 @app.post("/api/record")
 async def process_audio(file: UploadFile = File(...), mode: str = Form("note")):
     temp_filename = f"temp_{file.filename}"
