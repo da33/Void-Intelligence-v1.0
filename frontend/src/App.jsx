@@ -33,15 +33,35 @@ function App() {
     }
   };
 
+  // Wake Lock Ref
+  const wakeLockRef = React.useRef(null);
+
   const startRecording = async (selectedMode) => {
     setMode(selectedMode);
     try {
+      // 1. Request Wake Lock (Keep Screen On)
+      if ('wakeLock' in navigator) {
+        try {
+          wakeLockRef.current = await navigator.wakeLock.request('screen');
+          console.log('Screen Wake Lock acquired');
+        } catch (err) {
+          console.error(`Wake Lock error: ${err.name}, ${err.message}`);
+        }
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
       const chunks = [];
 
       recorder.ondataavailable = (e) => chunks.push(e.data);
       recorder.onstop = async () => {
+        // Release Wake Lock
+        if (wakeLockRef.current) {
+          await wakeLockRef.current.release();
+          wakeLockRef.current = null;
+          console.log('Screen Wake Lock released');
+        }
+
         const mimeType = recorder.mimeType || 'audio/webm';
         const blob = new Blob(chunks, { type: mimeType });
         console.log("Recording stopped. Blob size:", blob.size, "Type:", mimeType);
