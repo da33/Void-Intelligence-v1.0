@@ -91,7 +91,10 @@ class GeminiProcessor:
             Respond ONLY with the JSON string.
             """
 
-            response = self.model.generate_content([prompt, audio_file])
+            response = self.model.generate_content(
+                [prompt, audio_file],
+                generation_config={"response_mime_type": "application/json"}
+            )
             
             # Clean up cleanup...
             raw_text = response.text.replace("```json", "").replace("```", "").strip()
