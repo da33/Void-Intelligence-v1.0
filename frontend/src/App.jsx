@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, Square, Loader2, CheckCircle2, Calendar, FileText, Briefcase, Clock, StickyNote, Sparkles } from 'lucide-react';
+import { Mic, Square, Loader2, CheckCircle2, Calendar, FileText, Briefcase, Clock, StickyNote, Sparkles, X } from 'lucide-react';
 import { uploadAudio } from './services/api';
 
 function App() {
@@ -13,11 +13,24 @@ function App() {
 
   // Dynamic Orb Variants based on Mode
   const orbVariants = {
-    idle: { scale: 1, rotate: 0, borderRadius: "50%", backgroundColor: "#3b82f6" },
-    hover_meeting: { scale: 1.1, rotate: 45, borderRadius: "20%", backgroundColor: "#3b82f6", boxShadow: "0 0 30px #3b82f6" },
-    hover_schedule: { scale: 1.1, rotate: 180, borderRadius: "50%", backgroundColor: "#10b981", boxShadow: "0 0 30px #10b981", border: "4px solid #fff" },
-    hover_note: { scale: 1.1, rotate: -15, borderRadius: "30% 70% 70% 30% / 30% 30% 70% 70%", backgroundColor: "#ec4899", boxShadow: "0 0 30px #ec4899" },
-    recording: { scale: [1, 1.2, 1], borderRadius: ["50%", "40%", "50%"], transition: { repeat: Infinity, duration: 1.5 } }
+    idle: { scale: 1, rotate: 0, borderRadius: "50%", backgroundColor: "#3b82f6", boxShadow: "0 0 60px #3b82f6aa" },
+    hover_meeting: { scale: 1.1, rotate: 45, borderRadius: "20%", backgroundColor: "#3b82f6", boxShadow: "0 0 80px #3b82f6" },
+    hover_schedule: { scale: 1.1, rotate: 180, borderRadius: "50%", backgroundColor: "#10b981", boxShadow: "0 0 80px #10b981", border: "4px solid #fff" },
+    hover_note: { scale: 1.1, rotate: -15, borderRadius: "30% 70% 70% 30% / 30% 30% 70% 70%", backgroundColor: "#ec4899", boxShadow: "0 0 80px #ec4899" },
+    recording: {
+      scale: [1, 1.15, 1],
+      borderRadius: ["50%", "45%", "50%"],
+      backgroundColor: ["#3b82f6", "#ef4444", "#3b82f6"],
+      boxShadow: ["0 0 60px #3b82f6", "0 0 100px #ef4444", "0 0 60px #3b82f6"],
+      transition: { repeat: Infinity, duration: 2, ease: "easeInOut" }
+    },
+    success: {
+      scale: 1.2,
+      backgroundColor: "#10b981",
+      boxShadow: "0 0 100px #10b981",
+      borderRadius: "50%",
+      transition: { duration: 0.5 }
+    }
   };
 
   const startRecording = async (selectedMode) => {
@@ -65,6 +78,10 @@ function App() {
 
       const data = await uploadAudio(blob, filename, currentMode);
       setResult(data);
+
+      // Auto-alert removed in favor of UI card visualization, but keeping log
+      console.log('Upload Result:', data);
+
     } catch (error) {
       console.error("Upload error:", error);
       const url = error.config?.url || "Unknown URL";
@@ -75,13 +92,20 @@ function App() {
     }
   };
 
+  // Reset state to initial "Idle" mode
+  const resetState = () => {
+    setResult(null);
+    setHoverMode(null);
+  };
+
   return (
     <div className="min-h-screen bg-void text-gray-200 flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans selection:bg-primary/30">
 
-      {/* Background Ambience */}
+      {/* Background Ambience & Particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-blue-900/20 rounded-full blur-[120px] animate-pulse-slow" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-900/20 rounded-full blur-[100px] animate-pulse-slow" style={{ animationDelay: '2s' }} />
+        <Particles count={20} />
       </div>
 
       <main className="w-full max-w-lg z-10 flex flex-col items-center">
@@ -99,15 +123,18 @@ function App() {
               <motion.div
                 className="relative z-20 cursor-pointer"
                 initial="idle"
-                animate={hoverMode ? `hover_${hoverMode}` : "idle"}
+                animate={result ? "success" : (hoverMode ? `hover_${hoverMode}` : "idle")}
                 variants={orbVariants}
               >
                 <div className="w-32 h-32 flex items-center justify-center text-white/90">
-                  {/* Icon changes based on hover */}
-                  {hoverMode === 'meeting' && <Briefcase size={40} />}
-                  {hoverMode === 'schedule' && <Clock size={40} />}
-                  {hoverMode === 'note' && <StickyNote size={40} />}
-                  {!hoverMode && <Mic size={40} />}
+                  {result ? <CheckCircle2 size={50} className="text-white drop-shadow-md" /> : (
+                    <>
+                      {hoverMode === 'meeting' && <Briefcase size={40} />}
+                      {hoverMode === 'schedule' && <Clock size={40} />}
+                      {hoverMode === 'note' && <StickyNote size={40} />}
+                      {!hoverMode && <Mic size={40} />}
+                    </>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -133,8 +160,8 @@ function App() {
             )}
           </AnimatePresence>
 
-          {/* Mode Selectors (Satellites) */}
-          {!isRecording && !isProcessing && (
+          {/* Mode Selectors (Satellites) - ONLY show when idle and NO result */}
+          {!isRecording && !isProcessing && !result && (
             <>
               {/* Meeting */}
               <ModeTrigger
@@ -172,6 +199,7 @@ function App() {
           {isRecording && <p className="text-red-400 font-mono text-sm animate-pulse">RECORDING IN PROGRESS...</p>}
           {isProcessing && <p className="text-primary font-mono text-sm">PROCESSING DATA...</p>}
           {!isRecording && !isProcessing && !result && <p className="text-gray-600 text-sm">請選擇模式 (Select Mode)</p>}
+          {result && <p className="text-green-400 font-mono text-sm tracking-widest">COMPLETE</p>}
         </div>
 
         {/* Results Card */}
@@ -180,8 +208,18 @@ function App() {
             <motion.div
               initial={{ opacity: 0, y: 40, filter: 'blur(10px)' }}
               animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-              className="w-full mt-8 bg-glass backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl"
+              exit={{ opacity: 0, y: 40, filter: 'blur(10px)' }}
+              className="w-full mt-8 bg-glass backdrop-blur-3xl border border-white/10 rounded-2xl p-6 shadow-2xl relative"
             >
+              {/* Close Button */}
+              <button
+                onClick={resetState}
+                className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
+                title="恢復 (Restore)"
+              >
+                <X size={20} />
+              </button>
+
               <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-4">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 size={16} className="text-secondary" />
@@ -198,6 +236,12 @@ function App() {
                   <CheckCircle2 size={12} />
                   <span>SYNCED TO VOID</span>
                 </div>
+                {result.auto_event_link && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-mono">
+                    <Calendar size={12} />
+                    <span>行事曆已建立</span>
+                  </div>
+                )}
               </div>
             </motion.div>
           )}
@@ -230,5 +274,32 @@ const ModeTrigger = ({ mode, label, color, position, setHover, onClick }) => (
     <span className={`text-xs font-bold tracking-widest uppercase text-gray-500 group-hover:text-white transition-colors`}>{label}</span>
   </motion.button>
 );
+
+const Particles = ({ count }) => {
+  return (
+    <>
+      {[...Array(count)].map((_, i) => (
+        <motion.div
+          key={i}
+          className="absolute w-1 h-1 bg-white/20 rounded-full"
+          initial={{
+            x: Math.random() * window.innerWidth,
+            y: Math.random() * window.innerHeight,
+            opacity: Math.random() * 0.5 + 0.1,
+          }}
+          animate={{
+            y: [Math.random() * window.innerHeight, Math.random() * window.innerHeight],
+            opacity: [0.1, 0.5, 0.1],
+          }}
+          transition={{
+            duration: Math.random() * 10 + 10,
+            repeat: Infinity,
+            ease: "linear",
+          }}
+        />
+      ))}
+    </>
+  );
+};
 
 export default App;
