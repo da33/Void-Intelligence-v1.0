@@ -93,33 +93,44 @@ async def process_audio(file: UploadFile = File(...), mode: str = Form("note")):
         # 3. Google Drive Export (NotebookLM Bridge)
         google_doc_link = None
         if mode == 'meeting':
-            print("Exporting to Google Drive for NotebookLM...")
-            
-            # Find or Create Folder
-            folder_name = "Voice Notes"
-            folder_id = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
-            if not folder_id:
-                folder_id = drive.find_or_create_folder(folder_name)
-            
-            doc_title = f"Meeting: {data.get('summary', 'Untitled')}"
-            doc_content = f"Title: {data.get('summary')}\nDate: {data.get('date')}\n\n{text}"
-            
-            google_doc_link = drive.create_doc(doc_title, doc_content, folder_id=folder_id)
-            
-            if google_doc_link:
-                print(f"Google Doc created in '{folder_name}' ({folder_id}): {google_doc_link}")
-        
+            try:
+                print("Exporting to Google Drive for NotebookLM...")
+                
+                # Find or Create Folder
+                folder_name = "Voice Notes"
+                folder_id = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
+                if not folder_id:
+                    folder_id = drive.find_or_create_folder(folder_name)
+                
+                doc_title = f"Meeting: {data.get('summary', 'Untitled')}"
+                doc_content = f"Title: {data.get('summary')}\nDate: {data.get('date')}\n\n{text}"
+                
+                google_doc_link = drive.create_doc(doc_title, doc_content, folder_id=folder_id)
+                
+                if google_doc_link:
+                    print(f"Google Doc created in '{folder_name}' ({folder_id}): {google_doc_link}")
+            except Exception as e:
+                print(f"[WARNING] Drive Export Failed: {e}")
+
         # 4. Generate Calendar Assets
-        print("Generating Calendar assets...")
-        ics_content = calendar.create_ics(data)
-        google_cal_link = calendar.create_google_link(data)
+        ics_content = None
+        google_cal_link = None
+        try:
+            print("Generating Calendar assets...")
+            ics_content = calendar.create_ics(data)
+            google_cal_link = calendar.create_google_link(data)
+        except Exception as e:
+             print(f"[WARNING] Calendar Asset Gen Failed: {e}")
 
         # [NEW] Auto-create Event in Google Calendar (Mac Sync)
         # Attempt to create if date is present
         auto_event_link = None
         if data.get("date"):
-            print("Auto-syncing to Google Calendar...")
-            auto_event_link = calendar.create_event(data)
+            try:
+                print("Auto-syncing to Google Calendar...")
+                auto_event_link = calendar.create_event(data)
+            except Exception as e:
+                print(f"[WARNING] Calendar Auto-Sync Failed: {e}")
         
         # Cleanup
         os.remove(temp_filename)

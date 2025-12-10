@@ -23,45 +23,64 @@ class NotionClient:
             
             transcript = data.get("text", "")
             
-            # Create a Child Page (treated as a row in the DB)
+            # Try 1: Treat as Database (Rich Properties)
+            try:
+                print(f"Attempting to write to Database {PARENT_PAGE_ID}...")
+                response = self.notion.pages.create(
+                    parent={"database_id": PARENT_PAGE_ID},
+                    properties={
+                        "摘要": {"title": [{"text": {"content": summary}}]},
+                        "分類": {"select": {"name": category}},
+                        "日期": {"date": {"start": date_str}}
+                    },
+                    children=[
+                        # Content blocks
+                        {
+                            "object": "block",
+                            "type": "heading_2",
+                            "heading_2": {"rich_text": [{"text": {"content": "Transcript"}}]}
+                        },
+                        {
+                            "object": "block",
+                            "type": "paragraph",
+                            "paragraph": {"rich_text": [{"text": {"content": transcript}}]}
+                        }
+                    ]
+                )
+                print("Successfully wrote to Database.")
+                return response["url"]
+            except Exception as db_error:
+                print(f"Database write failed ({db_error}), falling back to Page mode...")
+
+            # Try 2: Treat as Page (Simple Append)
+            # This works if ID is a Page OR if Database Schema doesn't match
             response = self.notion.pages.create(
-                parent={"database_id": PARENT_PAGE_ID},
+                parent={"page_id": PARENT_PAGE_ID}, # Use page_id this time
                 properties={
-                    "摘要": {
-                        "title": [{"text": {"content": summary}}]
-                    },
-                    "分類": {
-                        "select": {"name": category}
-                    },
-                    "日期": {
-                        "date": {"start": date_str}
-                    }
+                    "title": [{"text": {"content": f"{category}: {summary}"}}] # Standard 'title' property always exists
                 },
                 children=[
                     {
                         "object": "block",
                         "type": "callout",
                         "callout": {
-                            "rich_text": [{"text": {"content": f"Category: {category} | Date: {date_str}"}}],
-                            "icon": {"emoji": "📅"}
+                            "rich_text": [{"text": {"content": f"Date: {date_str} | Category: {category} (Fallback Mode)"}}],
+                            "icon": {"emoji": "⚠️"}
                         }
                     },
-                    {
+                     {
                         "object": "block",
                         "type": "heading_2",
-                        "heading_2": {
-                            "rich_text": [{"text": {"content": "Transcript"}}]
-                        }
+                        "heading_2": {"rich_text": [{"text": {"content": "Transcript"}}]}
                     },
                     {
                         "object": "block",
                         "type": "paragraph",
-                        "paragraph": {
-                            "rich_text": [{"text": {"content": transcript}}]
-                        }
+                        "paragraph": {"rich_text": [{"text": {"content": transcript}}]}
                     }
                 ]
             )
+            print("Successfully created sub-page.")
             return response["url"]
         
         except Exception as e:

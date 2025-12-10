@@ -13,6 +13,11 @@ export const uploadAudio = async (audioBlob, filename, mode = 'note') => {
                 'Content-Type': 'multipart/form-data',
             },
         });
+
+        if (response.data.status === 'error') {
+            throw new Error(response.data.message || 'Server processing failed');
+        }
+
         return response.data;
     } catch (error) {
         console.error("Upload failed", error);
