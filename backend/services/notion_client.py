@@ -34,54 +34,48 @@ class NotionClient:
                         "日期": {"date": {"start": date_str}}
                     },
                     children=[
-                        # Content blocks
-                        {
-                            "object": "block",
-                            "type": "heading_2",
-                            "heading_2": {"rich_text": [{"text": {"content": "Transcript"}}]}
-                        },
-                        {
-                            "object": "block",
-                            "type": "paragraph",
-                            "paragraph": {"rich_text": [{"text": {"content": transcript}}]}
-                        }
+                        {"object": "block", "type": "paragraph", "paragraph": {"rich_text": [{"text": {"content": transcript}}]}}
                     ]
                 )
-                print("Successfully wrote to Database.")
+                print("Success: Database mode")
                 return response["url"]
-            except Exception as db_error:
-                print(f"Database write failed ({db_error}), falling back to Page mode...")
+            except Exception as e1:
+                print(f"Database Rich Mode failed: {e1}")
 
-            # Try 2: Treat as Page (Simple Append)
-            # This works if ID is a Page OR if Database Schema doesn't match
-            response = self.notion.pages.create(
-                parent={"page_id": PARENT_PAGE_ID}, # Use page_id this time
-                properties={
-                    "title": [{"text": {"content": f"{category}: {summary}"}}] # Standard 'title' property always exists
-                },
-                children=[
-                    {
-                        "object": "block",
-                        "type": "callout",
-                        "callout": {
-                            "rich_text": [{"text": {"content": f"Date: {date_str} | Category: {category} (Fallback Mode)"}}],
-                            "icon": {"emoji": "⚠️"}
-                        }
+            # Try 2: Treat as Database (Simple Title only) - In case schema is different
+            try:
+                # Most databases have a 'Name' or 'Title' property. In Chinese Notion it might be "名稱" or just "title".
+                # But 'title' is a safe bet for the primary column.
+                response = self.notion.pages.create(
+                    parent={"database_id": PARENT_PAGE_ID},
+                    properties={
+                        "title": {"title": [{"text": {"content": f"[{category}] {summary}"}}]}
                     },
-                     {
-                        "object": "block",
-                        "type": "heading_2",
-                        "heading_2": {"rich_text": [{"text": {"content": "Transcript"}}]}
+                    children=[
+                        {"object": "block", "type": "paragraph", "paragraph": {"rich_text": [{"text": {"content": transcript}}]}}
+                    ]
+                )
+                print("Success: Database Simple Mode")
+                return response["url"]
+            except Exception as e2:
+                print(f"Database Simple Mode failed: {e2}")
+
+            # Try 3: Treat as Page (Sub-page mode)
+            try:
+                response = self.notion.pages.create(
+                    parent={"page_id": PARENT_PAGE_ID},
+                    properties={
+                        "title": [{"text": {"content": f"[{category}] {summary}"}}]
                     },
-                    {
-                        "object": "block",
-                        "type": "paragraph",
-                        "paragraph": {"rich_text": [{"text": {"content": transcript}}]}
-                    }
-                ]
-            )
-            print("Successfully created sub-page.")
-            return response["url"]
+                    children=[
+                        {"object": "block", "type": "paragraph", "paragraph": {"rich_text": [{"text": {"content": transcript}}]}}
+                    ]
+                )
+                print("Success: Page mode")
+                return response["url"]
+            except Exception as e3:
+                print(f"Page mode failed: {e3}")
+                raise e3  # Final fail mechanism
         
         except Exception as e:
             print(f"Notion Error: {e}")
