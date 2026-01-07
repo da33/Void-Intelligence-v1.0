@@ -9,6 +9,8 @@ from services.google_auth import GoogleAuthClient
 import shutil
 import base64
 import os
+import time
+import logging
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -94,11 +96,11 @@ async def echo(data: dict):
 
 @app.post("/api/record")
 async def process_audio(file: UploadFile = File(...), mode: str = Form("note")):
-    base_name = file.filename.rsplit('.', 1)[0] if '.' in file.filename else file.filename
-    temp_filename = f"temp_{base_name}_{int(time.time())}.webm" # Standardize ext for ffmpeg input
-    mp3_filename = f"{temp_filename}.mp3"
-    
     try:
+        filename = file.filename or "recording.webm"
+        base_name = filename.rsplit('.', 1)[0] if '.' in filename else filename
+        temp_filename = f"temp_{base_name}_{int(time.time())}.webm" # Standardize ext for ffmpeg input
+        mp3_filename = f"{temp_filename}.mp3"
         # Save temp file
         with open(temp_filename, "wb") as buffer:
             style_content = await file.read()
