@@ -24,3 +24,25 @@ export const uploadAudio = async (audioBlob, filename, mode = 'note') => {
         throw error;
     }
 };
+
+export const submitText = async (text, mode = 'note') => {
+    try {
+        const response = await axios.post(`${API_URL}/process-text`, {
+            text,
+            mode
+        }, {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (response.data.status === 'error') {
+            throw new Error(response.data.message || 'Server processing failed');
+        }
+
+        return response.data;
+    } catch (error) {
+        console.error("Text submission failed", error);
+        throw error;
+    }
+};

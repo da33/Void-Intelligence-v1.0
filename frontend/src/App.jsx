@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, Square, Loader2, CheckCircle2, Calendar, FileText, Briefcase, Clock, StickyNote, Sparkles, X } from 'lucide-react';
-import { uploadAudio } from './services/api';
+import { Mic, Square, Loader2, CheckCircle2, Calendar, FileText, Briefcase, Clock, StickyNote, Sparkles, X, Type } from 'lucide-react';
+import { uploadAudio, submitText } from './services/api';
 
 function App() {
   const [isRecording, setIsRecording] = useState(false);
@@ -10,6 +10,9 @@ function App() {
   const [result, setResult] = useState(null);
   const [mode, setMode] = useState('note'); // 'meeting', 'schedule', 'note'
   const [hoverMode, setHoverMode] = useState(null); // For orb morphing preview
+  const [showTextModal, setShowTextModal] = useState(false);
+  const [textInput, setTextInput] = useState('');
+  const [textMode, setTextMode] = useState('note');
 
   // Dynamic Orb Variants based on Mode
   const orbVariants = {
@@ -110,6 +113,36 @@ function App() {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleTextSubmit = async () => {
+    if (!textInput.trim()) {
+      alert('請輸入文字內容');
+      return;
+    }
+
+    setShowTextModal(false);
+    setIsProcessing(true);
+
+    try {
+      const data = await submitText(textInput, textMode);
+      setResult(data);
+      setTextInput('');
+      console.log('Text submission result:', data);
+    } catch (error) {
+      console.error('Text submission error:', error);
+      const url = error.config?.url || 'Unknown URL';
+      const status = error.response?.status || 'Unknown Status';
+      alert(`處理失敗 (Status: ${status})\n連線目標: ${url}\n\n錯誤訊息: ${error.message}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const openTextModal = (selectedMode) => {
+    setTextMode(selectedMode);
+    setShowTextModal(true);
+    setResult(null);
   };
 
   // Reset state to initial "Idle" mode
@@ -267,7 +300,101 @@ function App() {
           )}
         </AnimatePresence>
 
+        {/* Text Input Button - Show when idle and no result */}
+        {!isRecording && !isProcessing && !result && (
+          <motion.button
+            onClick={() => openTextModal(mode || 'note')}
+            className="mt-8 flex items-center gap-2 px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-sm font-mono text-gray-400 hover:text-white transition-all duration-300 backdrop-blur-sm"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Type size={16} />
+            <span>貼上文字</span>
+          </motion.button>
+        )}
+
       </main>
+
+      {/* Text Input Modal */}
+      <AnimatePresence>
+        {showTextModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-6"
+            onClick={() => setShowTextModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-void border border-white/20 rounded-2xl p-8 max-w-2xl w-full shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                  <Type size={24} />
+                  貼上文字記事
+                </h2>
+                <button
+                  onClick={() => setShowTextModal(false)}
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              {/* Mode Selector */}
+              <div className="flex gap-2 mb-4">
+                {['note', 'meeting', 'schedule'].map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setTextMode(m)}
+                    className={`px-4 py-2 rounded-lg text-sm font-mono transition-all ${textMode === m
+                        ? 'bg-primary text-white'
+                        : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                      }`}
+                  >
+                    {m === 'note' && '記事'}
+                    {m === 'meeting' && '會議'}
+                    {m === 'schedule' && '行程'}
+                  </button>
+                ))}
+              </div>
+
+              <textarea
+                value={textInput}
+                onChange={(e) => setTextInput(e.target.value)}
+                placeholder="在此貼上或輸入文字內容...\n\n例如:\n- 會議記錄\n- 待辦事項\n- 靈感筆記\n- 行程安排"
+                className="w-full h-64 bg-white/5 border border-white/10 rounded-xl p-4 text-gray-200 placeholder-gray-600 focus:outline-none focus:border-primary/50 transition-colors resize-none font-mono text-sm"
+                autoFocus
+              />
+
+              <div className="flex items-center justify-between mt-6">
+                <span className="text-xs text-gray-500 font-mono">
+                  {textInput.length} / 10000 字元
+                </span>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowTextModal(false)}
+                    className="px-6 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-gray-400 hover:text-white transition-all"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={handleTextSubmit}
+                    disabled={!textInput.trim()}
+                    className="px-6 py-2 bg-primary hover:bg-primary/80 disabled:bg-gray-700 disabled:text-gray-500 rounded-lg text-sm text-white font-bold transition-all"
+                  >
+                    提交處理
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Footer Branding */}
       <footer className="absolute bottom-6 text-center">
