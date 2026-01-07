@@ -1,4 +1,5 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from services.gemini_processor import GeminiProcessor
 from services.notion_client import NotionClient
@@ -30,7 +31,27 @@ app.add_middleware(
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    error_msg = traceback.format_exc()
+    print(f"Global Error caught: {error_msg}")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "status": "error", 
+            "message": str(exc), 
+            "detail": error_msg
+        },
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "*",
+            "Access-Control-Allow-Headers": "*"
+        }
+    )
 
 # Initialize Shared Auth
 google_auth = GoogleAuthClient()
@@ -66,6 +87,10 @@ def health_check():
         "scopes": scopes,
         "env_var_present": bool(os.getenv("GOOGLE_TOKEN_BASE64"))
     }
+
+@app.post("/api/echo")
+async def echo(data: dict):
+    return {"status": "ok", "received": data}
 
 @app.post("/api/record")
 async def process_audio(file: UploadFile = File(...), mode: str = Form("note")):
