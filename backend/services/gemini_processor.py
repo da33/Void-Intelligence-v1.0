@@ -3,6 +3,7 @@ import os
 import json
 import time
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 class GeminiProcessor:
     def __init__(self):
@@ -38,7 +39,8 @@ class GeminiProcessor:
                 raise ValueError("Audio processing failed.")
 
             print("Generating content...")
-            current_time = datetime.now().isoformat()
+            # Use Asia/Taipei timezone for accurate local time
+            current_time = datetime.now(ZoneInfo("Asia/Taipei")).isoformat()
             
             # Select Prompt based on Mode
             if mode == "meeting":
@@ -56,7 +58,7 @@ class GeminiProcessor:
                 - summary: A concise title for the meeting.
                 - text: A structured summary, including Key Decisions and Action Items.
                 - category: Choose one from ["工作", "生活", "學習", "其他"] based on the meeting content.
-                - date: The meeting date or next follow-up date. ISO 8601 format.
+                - date: The meeting date or next follow-up date in ISO 8601 format WITH timezone (Asia/Taipei UTC+8). Example: 2026-01-07T15:00:00+08:00
                 """
             elif mode == "schedule":
                 system_instruction = f"""
@@ -70,7 +72,7 @@ class GeminiProcessor:
                 - summary: The name of the event.
                 - text: The original transcription.
                 - category: Choose one from ["工作", "生活", "學習", "其他"] based on context.
-                - date: The exact date/time mentioned. If "tomorrow", calculate based on current time.
+                - date: The exact date/time in ISO 8601 format WITH timezone (Asia/Taipei UTC+8). If "tomorrow" or "下午三點", calculate based on current time and include +08:00. Example: 2026-01-08T15:00:00+08:00
                 """
             else: # "note" or default
                 system_instruction = f"""
@@ -82,7 +84,7 @@ class GeminiProcessor:
                 - summary: A short title for the note.
                 - text: The full transcription.
                 - category: Choose the best fit from ["工作", "生活", "靈感", "學習", "其他"].
-                - date: ISO 8601 format or null if no time mention.
+                - date: ISO 8601 format WITH timezone (Asia/Taipei UTC+8) or null if no time mention. Example: 2026-01-07T15:00:00+08:00
                 """
 
             prompt = f"""

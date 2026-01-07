@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 import urllib.parse
 
 class CalendarClient:
@@ -21,14 +22,23 @@ class CalendarClient:
             return None
         
         try:
-            dt_start = datetime.fromisoformat(start_time)
+            # Parse datetime with timezone awareness
+            if '+' in start_time or 'Z' in start_time:
+                # Already has timezone info
+                dt_start = datetime.fromisoformat(start_time)
+            else:
+                # No timezone info, assume Asia/Taipei
+                dt_start = datetime.fromisoformat(start_time).replace(
+                    tzinfo=ZoneInfo("Asia/Taipei")
+                )
+            
             dt_end = dt_start + timedelta(hours=1)
             
             event = {
                 'summary': summary,
                 'start': {
                     'dateTime': dt_start.isoformat(),
-                    'timeZone': 'Asia/Taipei', # Hardcoded for now
+                    'timeZone': 'Asia/Taipei',
                 },
                 'end': {
                     'dateTime': dt_end.isoformat(),
