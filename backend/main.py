@@ -104,9 +104,6 @@ async def process_text_input(data: dict):
         if not text:
             raise HTTPException(status_code=400, detail="文字內容不能為空")
         
-        if len(text) < 5:
-            raise HTTPException(status_code=400, detail="文字內容太短，請至少輸入 5 個字元")
-        
         if len(text) > 10000:
             raise HTTPException(status_code=400, detail="文字內容太長，請限制在 10000 字元以內")
         
