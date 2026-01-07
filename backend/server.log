@@ -1,0 +1,31 @@
+/Users/mac/Library/Python/3.9/lib/python/site-packages/google/api_core/_python_version_support.py:252: FutureWarning: You are using a Python version (3.9.6) past its end of life. Google will update google.api_core with critical bug fixes on a best-effort basis, but not with any other fixes or features. Please upgrade to the latest Python version, or at least Python 3.10, and then update google.api_core.
+  warnings.warn(message, FutureWarning)
+/Users/mac/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+INFO:     Started server process [28466]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+An error occurred: module 'importlib.metadata' has no attribute 'packages_distributions'
+INFO:     127.0.0.1:61637 - "GET /api/health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61639 - "GET / HTTP/1.1" 200 OK
+Saved temp file: temp_test_audio.webm, Size: 8 bytes
+Transcoding temp_test_audio.webm to temp_test_audio.webm.mp3...
+Error: Command '['ffmpeg', '-i', 'temp_test_audio.webm', '-vn', '-acodec', 'libmp3lame', '-b:a', '192k', '-y', 'temp_test_audio.webm.mp3']' returned non-zero exit status 183.
+INFO:     127.0.0.1:61651 - "POST /api/record HTTP/1.1" 200 OK
+Saved temp file: temp_temp_recording.webm.mp3, Size: 72044 bytes
+Transcoding temp_temp_recording.webm.mp3 to temp_temp_recording.webm.mp3.mp3...
+Processing with Gemini...
+Uploading temp_temp_recording.webm.mp3.mp3 to Gemini...
+Generating content...
+Gemini result: {'summary': '測試', 'text': '這是測試一', 'category': '其他', 'date': None}
+Updating Notion...
+Attempting to write to Database 85070b01-b338-4a7b-9b85-4479fff1059a...
+Success: Database mode
+Generating Calendar assets...
+[WARNING] Calendar Asset Gen Failed: fromisoformat: argument must be str
+INFO:     127.0.0.1:61685 - "POST /api/record HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [28466]

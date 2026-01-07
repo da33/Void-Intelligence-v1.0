@@ -13,15 +13,14 @@ class NotionClient:
             # We are using a Page as parent (Fallback mode)
             PARENT_PAGE_ID = os.getenv("NOTION_DATABASE_ID") # Reusing variable name for Parent Page ID
             
-            summary = data.get("summary", "New Note")
-            category = data.get("category", "Life")
+            summary = data.get("summary") or "新筆記 (無內容)"
+            category = data.get("category") or "其他"
+            transcript = data.get("text") or "(無逐字稿內容)"
             
             # Safe Date Handling
             date_str = data.get("date")
             if not date_str or date_str == "None":
                 date_str = datetime.now().isoformat()
-            
-            transcript = data.get("text", "")
             
             # Try 1: Treat as Database (Rich Properties)
             try:

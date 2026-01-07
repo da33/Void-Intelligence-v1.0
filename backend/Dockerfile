@@ -1,5 +1,5 @@
 # Use official Python runtime as a parent image
-FROM python:3.9-slim
+FROM python:3.11-slim
 
 # Install system dependencies (FFmpeg is required for audio transcoding)
 RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*

@@ -12,6 +12,16 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# [Compatibility] Flush importlib.metadata shim for Python < 3.10
+import importlib.metadata
+if not hasattr(importlib.metadata, 'packages_distributions'):
+    try:
+        import importlib_metadata
+        importlib.metadata.packages_distributions = importlib_metadata.packages_distributions
+    except ImportError:
+        # If even importlib_metadata is missing, provide a dummy to prevent crashes
+        importlib.metadata.packages_distributions = lambda: {}
+
 app = FastAPI()
 
 app.add_middleware(
@@ -59,7 +69,8 @@ def health_check():
 
 @app.post("/api/record")
 async def process_audio(file: UploadFile = File(...), mode: str = Form("note")):
-    temp_filename = f"temp_{file.filename}"
+    base_name = file.filename.rsplit('.', 1)[0] if '.' in file.filename else file.filename
+    temp_filename = f"temp_{base_name}_{int(time.time())}.webm" # Standardize ext for ffmpeg input
     mp3_filename = f"{temp_filename}.mp3"
     
     try:
@@ -68,15 +79,27 @@ async def process_audio(file: UploadFile = File(...), mode: str = Form("note")):
             style_content = await file.read()
             buffer.write(style_content)
         
-        print(f"Saved temp file: {temp_filename}, Size: {os.path.getsize(temp_filename)} bytes")
+        file_size = os.path.getsize(temp_filename)
+        print(f"Saved temp file: {temp_filename}, Size: {file_size} bytes")
         
+        # Guard clause: Fail early if file is suspiciously small (< 500 bytes)
+        if file_size < 500:
+            print(f"File {temp_filename} is too small ({file_size} bytes). Likely corrupt or silent.")
+            os.remove(temp_filename)
+            return {"status": "error", "message": "音訊檔案太小，請重新錄音"}
+
         # TRANSCODE to MP3 using ffmpeg to ensure compatibility
         import subprocess
         print(f"Transcoding {temp_filename} to {mp3_filename}...")
-        subprocess.run([
-            "ffmpeg", "-i", temp_filename, 
-            "-vn", "-acodec", "libmp3lame", "-b:a", "192k", "-y", mp3_filename
-        ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        try:
+            subprocess.run([
+                "ffmpeg", "-i", temp_filename, 
+                "-vn", "-acodec", "libmp3lame", "-b:a", "192k", "-y", mp3_filename
+            ], check=True, capture_output=True, text=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Transcoding failed (ffmpeg exit {e.returncode}): {e.stderr}")
+            os.remove(temp_filename)
+            return {"status": "error", "message": "音訊格式轉換失敗，請確認 ffmpeg 已安裝"}
         
         target_file = mp3_filename
             
@@ -147,8 +170,10 @@ async def process_audio(file: UploadFile = File(...), mode: str = Form("note")):
         }
         
     except Exception as e:
-        print(f"Error: {e}")
-        return {"status": "error", "message": str(e)}
+        import traceback
+        error_msg = f"API Error: {str(e)}\n{traceback.format_exc()}"
+        print(error_msg)
+        return {"status": "error", "message": str(e), "detail": error_msg if os.getenv("DEBUG") else None}
 
 if __name__ == "__main__":
     import uvicorn

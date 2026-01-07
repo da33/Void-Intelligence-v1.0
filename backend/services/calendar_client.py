@@ -16,6 +16,10 @@ class CalendarClient:
         summary = data.get("summary", "Event")
         start_time = data.get("date") # ISO format expected
         
+        if not start_time or start_time == "None":
+            print("No start time provided, skipping calendar event creation.")
+            return None
+        
         try:
             dt_start = datetime.fromisoformat(start_time)
             dt_end = dt_start + timedelta(hours=1)
@@ -45,6 +49,9 @@ class CalendarClient:
         # start_time format expected: YYYYMMDDTHHMMSS
         # If input is ISO 8601 (YYYY-MM-DDTHH:MM), convert it
         
+        if not start_time or start_time == "None":
+            return None
+
         try:
             dt_start = datetime.fromisoformat(start_time)
             if end_time:
@@ -66,6 +73,9 @@ class CalendarClient:
 
     def generate_ics_content(self, summary: str, start_time: str, end_time: str = None) -> str:
         """Generates content for an .ics file."""
+        if not start_time or start_time == "None":
+            return ""
+
         try:
             dt_start = datetime.fromisoformat(start_time)
             if end_time:
