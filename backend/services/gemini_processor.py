@@ -123,53 +123,63 @@ class GeminiProcessor:
             current_time = datetime.now(ZoneInfo("Asia/Taipei")).isoformat()
             
             # Select Prompt based on Mode
-            if mode == "meeting":
+            if mode == "auto":
+                system_instruction = f"""
+                You are an intelligent assistant. Analyze this text and:
+                1. Classify the type into one of: ["meeting", "schedule", "note"].
+                   - "meeting": Formal or informal meetings, discussions, or synced sessions.
+                   - "schedule": Specific events, appointments, or tasks with a designated time.
+                   - "note": General thoughts, ideas, or reminders WITHOUT a specific future time.
+                2. Extract:
+                   - summary: A concise title.
+                   - text: Structured summary for meetings, or original text for others.
+                   - category: Choose from ["工作", "生活", "靈感", "學習", "其他"].
+                   - date: ISO 8601 format WITH timezone (Asia/Taipei UTC+8). 
+                     Calculate from current time ({current_time}) for relative terms like "明天".
+                     Set to null if no time in "note".
+                
+                Extract in strict JSON format.
+                """
+            elif mode == "meeting":
                 system_instruction = f"""
                 You are a professional secretary. Analyze this meeting note text.
-                The text is likely in Traditional Chinese (繁體中文).
                 Current time is: {current_time}.
                 
-                Your goal is to extract:
-                1. Key Decisions (what was decided).
-                2. Action Items (who needs to do what).
-                3. A brief summary.
-                
-                Extract the following information in strict JSON format:
-                - summary: A concise title for the meeting.
-                - text: A structured summary, including Key Decisions and Action Items.
-                - category: Choose one from ["工作", "生活", "學習", "其他"] based on the meeting content.
-                - date: The meeting date or next follow-up date in ISO 8601 format WITH timezone (Asia/Taipei UTC+8). Example: 2026-01-07T15:00:00+08:00
+                Extract: 
+                - summary (title)
+                - text (structured with Key Decisions/Action Items)
+                - category ["工作", "生活", "學習", "其他"]
+                - date (ISO 8601 with timezone Asia/Taipei)
                 """
             elif mode == "schedule":
                 system_instruction = f"""
-                You are a scheduling assistant. Analyze this text to extract event details.
-                The text is likely in Traditional Chinese (繁體中文).
+                You are a scheduling assistant. Extract event details.
                 Current time is: {current_time}.
                 
-                Your PRIMARY goal is to identify the DATE and TIME of the event.
-                
-                Extract the following information in strict JSON format:
-                - summary: The name of the event.
-                - text: The original text.
-                - category: Choose one from ["工作", "生活", "學習", "其他"] based on context.
-                - date: The exact date/time in ISO 8601 format WITH timezone (Asia/Taipei UTC+8). If "tomorrow" or "下午三點", calculate based on current time and include +08:00. Example: 2026-01-08T15:00:00+08:00
+                Extract:
+                - summary (event name)
+                - text (original)
+                - category ["工作", "生活", "學習", "其他"]
+                - date (exact ISO 8601 with timezone Asia/Taipei)
                 """
-            else: # "note" or default
+            else: # "note"
                 system_instruction = f"""
-                You are a personal assistant. Analyze this note text.
-                The text is likely in Traditional Chinese (繁體中文).
+                You are a personal assistant. Analyze this note.
                 Current time is: {current_time}.
                 
-                Extract the following information in strict JSON format:
-                - summary: A short title for the note.
-                - text: The full text content.
-                - category: Choose the best fit from ["工作", "生活", "靈感", "學習", "其他"].
-                - date: ISO 8601 format WITH timezone (Asia/Taipei UTC+8) or null if no time mention. Example: 2026-01-07T15:00:00+08:00
+                Extract:
+                - summary (title)
+                - text (original)
+                - category ["工作", "生活", "靈感", "學習", "其他"]
+                - date (ISO 8601 with timezone Asia/Taipei or null)
                 """
 
             prompt = f"""
             {system_instruction}
             
+            Add a field "type" to the output JSON which is the classified type: "meeting", "schedule", or "note".
+            If mode was "{mode}", use that for "type" unless mode was "auto".
+
             Text to analyze:
             {text}
             

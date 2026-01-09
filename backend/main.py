@@ -112,7 +112,9 @@ async def process_text_input(data: dict):
         # 1. Process with Gemini (Analyze text)
         print("Processing with Gemini...")
         gemini_data = await gemini.process_text(text, mode=mode)
-        print(f"Gemini result: {gemini_data}")
+        # Use auto-detected type if available
+        inferred_type = gemini_data.get("type", mode)
+        print(f"Gemini result ({inferred_type}): {gemini_data}")
         
         # 2. Update Notion
         print("Updating Notion...")
@@ -120,7 +122,7 @@ async def process_text_input(data: dict):
         
         # 3. Google Drive Export (for meeting mode)
         google_doc_link = None
-        if mode == 'meeting':
+        if inferred_type == 'meeting':
             try:
                 print("Exporting to Google Drive for NotebookLM...")
                 
@@ -151,7 +153,8 @@ async def process_text_input(data: dict):
 
         # 5. Auto-create Event in Google Calendar
         auto_event_link = None
-        if gemini_data.get("date"):
+        # Always attempt for schedule or meeting if date is present
+        if gemini_data.get("date") and inferred_type in ["schedule", "meeting"]:
             try:
                 print("Auto-syncing to Google Calendar...")
                 auto_event_link = calendar.create_event(gemini_data)

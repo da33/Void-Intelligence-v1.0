@@ -12,7 +12,7 @@ function App() {
   const [hoverMode, setHoverMode] = useState(null); // For orb morphing preview
   const [showTextModal, setShowTextModal] = useState(false);
   const [textInput, setTextInput] = useState('');
-  const [textMode, setTextMode] = useState('note');
+  const [textMode, setTextMode] = useState('auto');
 
   // Dynamic Orb Variants based on Mode
   const orbVariants = {
@@ -140,7 +140,7 @@ function App() {
   };
 
   const openTextModal = (selectedMode) => {
-    setTextMode(selectedMode);
+    setTextMode('auto');
     setShowTextModal(true);
     setResult(null);
   };
@@ -347,15 +347,16 @@ function App() {
 
               {/* Mode Selector */}
               <div className="flex gap-2 mb-4">
-                {['note', 'meeting', 'schedule'].map((m) => (
+                {['auto', 'note', 'meeting', 'schedule'].map((m) => (
                   <button
                     key={m}
                     onClick={() => setTextMode(m)}
                     className={`px-4 py-2 rounded-lg text-sm font-mono transition-all ${textMode === m
-                        ? 'bg-primary text-white'
-                        : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                      ? 'bg-primary text-white'
+                      : 'bg-white/5 text-gray-400 hover:bg-white/10'
                       }`}
                   >
+                    {m === 'auto' && '自動識別'}
                     {m === 'note' && '記事'}
                     {m === 'meeting' && '會議'}
                     {m === 'schedule' && '行程'}
